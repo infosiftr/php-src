@@ -44,6 +44,9 @@ RUN a2dismod mpm_event && a2enmod mpm_prefork
 RUN { \
 		echo '<FilesMatch \.php$>'; \
 		echo '\tSetHandler application/x-httpd-php'; \
+		echo '\t<IfDefine FPM>'; \
+		echo '\t\tSetHandler "proxy:unix:/var/run/php-fpm/fpm.sock|fcgi://localhost/"'; \
+		echo '\t</IfDefine>'; \
 		echo '</FilesMatch>'; \
 		echo; \
 		echo 'DirectoryIndex disabled'; \
@@ -57,4 +60,4 @@ RUN { \
 	&& a2enconf docker-php
 
 ENV PHP_EXTRA_BUILD_DEPS apache2-dev
-ENV PHP_EXTRA_CONFIGURE_ARGS --with-apxs2 --disable-cgi
+ENV PHP_EXTRA_CONFIGURE_ARGS --with-apxs2 --disable-cgi --enable-fpm --with-fpm-user=www-data --with-fpm-group=www-data

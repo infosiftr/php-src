@@ -149,7 +149,7 @@ for version in "${versions[@]}"; do
 				docker-php-source \
 				"$version/$suite/$variant/"
 			if [ "$variant" = 'apache' ]; then
-				cp -a apache2-foreground "$version/$suite/$variant/"
+				cp -a apache2-foreground apache-fpm "$version/$suite/$variant/"
 			fi
 			if [ "$majorVersion" = '7' -a "$minorVersion" -lt '2' ]; then
 				# argon2 password hashing is only supported in 7.2+
@@ -185,7 +185,7 @@ for version in "${versions[@]}"; do
 				# sodium is part of php core 7.2+ https://wiki.php.net/rfc/libsodium
 				sed -ri '/sodium/d' "$version/$suite/$variant/Dockerfile"
 			fi
-			if [ "$variant" = 'fpm' -a "$majorVersion" = '7' -a "$minorVersion" -lt '3' ]; then
+			if [ "$variant" = 'fpm' -o "$variant" = 'apache' ] && [ "$majorVersion" = '7' -a "$minorVersion" -lt '3' ]; then
 				# php-fpm "decorate_workers_output" is only available in 7.3+
 				sed -ri \
 					-e '/decorate_workers_output/d' \

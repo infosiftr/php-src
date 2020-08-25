@@ -4,5 +4,50 @@ STOPSIGNAL SIGWINCH
 COPY apache2-foreground /usr/local/bin/
 WORKDIR /var/www/html
 
+# Set up FPM
+RUN set -ex \
+	&& cd /usr/local/etc \
+	&& if [ -d php-fpm.d ]; then \
+		# for some reason, upstream's php-fpm.conf.default has "include=NONE/etc/php-fpm.d/*.conf"
+		sed 's!=NONE/!=!g' php-fpm.conf.default | tee php-fpm.conf > /dev/null; \
+		cp php-fpm.d/www.conf.default php-fpm.d/www.conf; \
+	else \
+		# PHP 5.x doesn't use "include=" by default, so we'll create our own simple config that mimics PHP 7+ for consistency
+		mkdir php-fpm.d; \
+		cp php-fpm.conf.default php-fpm.d/www.conf; \
+		{ \
+			echo '[global]'; \
+			echo 'include=etc/php-fpm.d/*.conf'; \
+		} | tee php-fpm.conf; \
+	fi \
+	&& { \
+		echo '[global]'; \
+		echo 'error_log = /proc/self/fd/2'; \
+		echo; echo '; https://github.com/docker-library/php/pull/725#issuecomment-443540114'; echo 'log_limit = 8192'; \
+		echo; \
+		echo '[www]'; \
+		echo 'clear_env = no'; \
+		echo; \
+		echo '; Ensure worker stdout and stderr are sent to the main error log.'; \
+		echo 'catch_workers_output = yes'; \
+		echo 'decorate_workers_output = no'; \
+	} | tee php-fpm.d/docker.conf \
+	&& { \
+		echo '[global]'; \
+		echo 'daemonize = no'; \
+		echo; \
+		echo '[www]'; \
+		echo 'user = ${FPM_RUN_USER}'; \
+		echo 'group = ${FPM_RUN_GROUP}'; \
+		echo 'listen = /var/run/php-fpm/fpm.sock'; \
+		echo 'listen.mode = 666'; \
+	} | tee php-fpm.d/zz-docker.conf \
+	&& mkdir -p /var/run/php-fpm \
+	# allow running as an arbitrary user
+	&& chmod 777 /var/run/php-fpm
+
+# Provide alternate command to start Apache with FPM
+COPY apache-fpm /usr/local/bin/
+
 EXPOSE 80
 CMD ["apache2-foreground"]
