@@ -113,6 +113,7 @@ RUN set -eux; \
 {{ ) else "" end -}}
 		openssl-dev \
 		sqlite-dev \
+		tzdata \
 	; \
 	\
 	export CFLAGS="$PHP_CFLAGS" \
